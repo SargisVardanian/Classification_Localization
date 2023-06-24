@@ -1,0 +1,10 @@
+Chicken
+Horses
+buffalo
+cat
+cows
+dog
+elephant
+goat
+monkeys
+rooster
