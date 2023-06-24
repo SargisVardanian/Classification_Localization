@@ -38,7 +38,8 @@ test_labels = []
 print('test_annotations')
 for annotation in test_annotations:
     image_path, label, xmin, ymin, xmax, ymax = annotation
-    img = cv2.imread(data_folder + '/test/' + image_path, cv2.COLOR_BGR2RGB)  # Use 'image_path' instead of 'test_path'
+    img = cv2.imread(data_folder + '/test/' + image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # Исправленная строка
     img = cv2.resize(img, (224, 224))
     test_images.append(img)
     test_labels.append([label, xmin, ymin, xmax, ymax])

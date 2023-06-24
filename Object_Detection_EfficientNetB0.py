@@ -1,10 +1,5 @@
-from keras.models import load_model
-from keras.preprocessing import image
-import glob
 import cv2
 import numpy as np
-from keras.callbacks import ModelCheckpoint
-from keras.applications import MobileNetV2
 from keras.layers import Dense, Flatten, Conv2D
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
@@ -20,8 +15,6 @@ data_folder = "Animals_detection/"
 
 train_annotations_file = data_folder + "train/_annotations.txt"
 train_classes_file = data_folder + "train/_classes.txt"
-test_annotations_file = data_folder + "test/_annotations.txt"
-test_classes_file = data_folder + "test/_classes.txt"
 validation_annotations_file = data_folder + "valid/_annotations.txt"
 validation_classes_file = data_folder + "valid/_classes.txt"
 
@@ -47,7 +40,6 @@ def read_annotations_file(annotations_file):
 
 
 train_path, train_annotations = read_annotations_file(train_annotations_file)
-test_path, test_annotations = read_annotations_file(test_annotations_file)
 valid_path, validation_annotations = read_annotations_file(validation_annotations_file)
 
 
@@ -56,30 +48,22 @@ train_images = []
 train_labels = []
 print('train_annotations')
 for annotation in train_annotations:
-    # p = data_folder + '/train/' + train_path
-    # print('p', p)
     image_path, label, xmin, ymin, xmax, ymax = annotation
-    img = cv2.imread(data_folder + '/train/' + image_path, cv2.COLOR_BGR2RGB)
+    img = cv2.imread(data_folder + '/train/' + image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     img = cv2.resize(img, (224, 224))
     train_images.append(img)
     train_labels.append([label, xmin, ymin, xmax, ymax])
 
-test_images = []
-test_labels = []
-print('test_annotations')
-for annotation in test_annotations:
-    image_path, label, xmin, ymin, xmax, ymax = annotation
-    img = cv2.imread(data_folder + '/test/' + test_path, cv2.COLOR_BGR2RGB)
-    img = cv2.resize(img, (224, 224))
-    test_images.append(img)
-    test_labels.append([label, xmin, ymin, xmax, ymax])
 
 validation_images = []
 validation_labels = []
 print('validation_annotations')
+
 for annotation in validation_annotations:
     image_path, label, xmin, ymin, xmax, ymax = annotation
-    img = cv2.imread(data_folder + '/valid/' + valid_path, cv2.COLOR_BGR2RGB)
+    img = cv2.imread(data_folder + '/valid/' + image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)  # Исправленная строка
     img = cv2.resize(img, (224, 224))
     validation_images.append(img)
     validation_labels.append([label, xmin, ymin, xmax, ymax])
@@ -94,8 +78,6 @@ validation_images[:], validation_labels[:] = zip(*combined_valid_data)
 
 train_images = np.array(train_images + validation_images)
 train_labels = np.array(train_labels + validation_labels)
-test_images = np.array(test_images)
-test_labels = np.array(test_labels)
 
 print('Preprocessing')
 output_classes = len(classes)
@@ -125,7 +107,7 @@ x = base_model.output
 x = GlobalAveragePooling2D()(x)
 
 x = Dense(1024, activation='relu')(x)
-x = Dropout(0.5)(x)
+x = Dropout(0.1)(x)
 x = BatchNormalization()(x)
 x = Dense(1024, activation='relu')(x)
 x = BatchNormalization()(x)
@@ -147,7 +129,7 @@ x2 = Dense(512, activation='relu')(x)
 d2 = Dropout(0.2)(x2)
 n2 = BatchNormalization()(d2)
 x2 = Dense(256, activation='relu')(n2)
-d2 = Dropout(0.2)(x2)
+d2 = Dropout(0.1)(x2)
 n2 = BatchNormalization()(d2)
 x2 = Dense(128, activation='relu')(n2)
 n2 = BatchNormalization()(x2)
@@ -160,8 +142,8 @@ combined_output = Concatenate()([bbox_output, class_output])
 print('output', combined_output)
 model = Model(inputs=base_model.input, outputs=combined_output)
 
-# print('Загрузка сохраненных весов')
-# model.load_weights('model_weights')
+print('Загрузка сохраненных весов')
+model.load_weights('model_weights')
 
 # Установка слоев как необучаемые
 for layer in base_model.layers:
@@ -175,7 +157,7 @@ model.compile(optimizer='adam',
 print(f'train_images {train_images.shape} train_labels {train_labels.shape}')
 
 print('Train the model')
-model.fit(train_images, train_labels, batch_size=64, epochs=5, validation_split=0.1)
+model.fit(train_images, train_labels, batch_size=40, epochs=3, validation_split=0.1)
 
 model.save_weights('model_weights')
 
